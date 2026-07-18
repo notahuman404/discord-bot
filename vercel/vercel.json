@@ -2,7 +2,7 @@
   "buildCommand": "bash build.sh",
   "functions": {
     "api/ocr.py": {
-      "maxDuration": 10
+      "maxDuration": 60
     }
   }
 }
