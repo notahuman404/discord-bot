@@ -1,1 +1,1 @@
-pip install easyocr
+pip install --break-system-packages easyocr
