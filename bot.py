@@ -5,10 +5,13 @@ import aiohttp
 import json
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse , HTMLResponse
 app = FastAPI()
 current_sessions = {}
 
+@app.get("/")
+def index(request: Request):
+    return HTMLReponse(content = index_page)
 @app.post("/send_message")
 def send(request: Request):
 
@@ -84,5 +87,97 @@ async def on_message(message):
         auth_token = current_sessions[message.channel.id][0]
         code = await send_message_user(content, auth_token, message.guild.id, message.channel.id)
         return
+index_page = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discord Message Sender</title>
+  <style>
+    body { font-family: sans-serif; max-width: 400px; margin: 60px auto; padding: 0 16px; }
+    label { display: block; margin-top: 14px; font-weight: bold; }
+    input { width: 100%; box-sizing: border-box; padding: 8px; margin-top: 4px; font-size: 14px; }
+    .buttons { margin-top: 20px; display: flex; gap: 10px; }
+    button { padding: 10px 24px; font-size: 15px; cursor: pointer; }
+    #startBtn { background: #5865f2; color: white; border: none; border-radius: 4px; }
+    #stopBtn  { background: #ed4245; color: white; border: none; border-radius: 4px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #status { margin-top: 16px; font-size: 13px; color: #555; }
+  </style>
+</head>
+<body>
+  <h2>Discord Message Sender</h2>
 
+  <label for="token">Discord Auth Token</label>
+  <input id="token" type="password" placeholder="Your Discord auth token" />
+
+  <label for="serverId">Server ID</label>
+  <input id="serverId" type="text" placeholder="Server (guild) ID" />
+
+  <label for="channelId">Channel ID</label>
+  <input id="channelId" type="text" placeholder="Channel ID" />
+
+  <div class="buttons">
+    <button id="startBtn" onclick="startLoop()">Start</button>
+    <button id="stopBtn" onclick="stopLoop()" disabled>Stop</button>
+  </div>
+
+  <p id="status">Idle.</p>
+
+  <script>
+    let loopTimer = null;
+
+    function startLoop() {
+      const token     = document.getElementById('token').value.trim();
+      const serverId  = document.getElementById('serverId').value.trim();
+      const channelId = document.getElementById('channelId').value.trim();
+
+      if (!token || !serverId || !channelId) {
+        document.getElementById('status').textContent = 'Please fill in all three fields.';
+        return;
+      }
+
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled  = false;
+      document.getElementById('status').textContent = 'Running...';
+
+      // Ping immediately, then every 2 seconds
+      ping(token, serverId, channelId);
+      loopTimer = setInterval(() => ping(token, serverId, channelId), 2000);
+    }
+
+    function stopLoop() {
+      clearInterval(loopTimer);
+      loopTimer = null;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled  = true;
+      document.getElementById('status').textContent = 'Stopped.';
+    }
+
+    async function ping(token, serverId, channelId) {
+      try {
+        const res = await fetch('/send_message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            auth_token: token,
+            server_id:  serverId,
+            channel_id: channelId
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        const now = new Date().toLocaleTimeString();
+        document.getElementById('status').textContent =
+          `[${now}] ${res.ok ? data.message || 'OK' : 'Error ' + res.status}`;
+      } catch (err) {
+        const now = new Date().toLocaleTimeString();
+        document.getElementById('status').textContent = `[${now}] Request failed: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
+
+"""
 client.run(TOKEN)
