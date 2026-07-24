@@ -33,7 +33,6 @@ load_dotenv()
 
 TOKEN = os.getenv("bot_token")
 POKE_NAME_ID = 874910942490677270
-auth_token = os.getenv("my_token")
 SAVE_FOLDER = "pokemon_images"
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 intents = discord.Intents.default()
