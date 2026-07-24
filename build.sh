@@ -1,1 +1,1 @@
-pip install --break-system-packages easyocr
+pip install -r requirements.txt
