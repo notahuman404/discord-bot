@@ -3,35 +3,12 @@ import os
 from dotenv import load_dotenv
 import aiohttp
 import json
-
+import random
+import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse , HTMLResponse
-app = FastAPI()
 current_sessions = {}
 
-@app.get("/")
-def index(request: Request):
-    return HTMLReponse(content = index_page)
-@app.post("/send_message")
-def send(request: Request):
-
-    data = request.json()
-
-    current_sessions.setdefault(data['channel_id'], []).append(data['auth_token'])
-    
-    a = await send_message_user(content=data['content'], auth_token= data['auth_token'], channel_id = data['channel_id'], server_id = data['server_id'])
-    return JSONResponse({"message": "successfully sent"})
-
-@app.post("/stop_message")
-def stop(request: Request):
-    data = request.json()
-    if data['channel_id'] in current_sessions.keys():
-        try:
-            current_sessions[data['channel_id']].pop(data['auth_token'])
-        except:
-            return JSONResponse({"message": "Auth token not in our database"})
-    else:
-        JSONResponse({"message": "channel id not in our database"})
 load_dotenv()
 
 TOKEN = os.getenv("bot_token")
@@ -41,9 +18,41 @@ os.makedirs(SAVE_FOLDER, exist_ok=True)
 intents = discord.Intents.default()
 intents.message_content = True
 CHANNEL_ID = "1526236600823054386"
-
-
 client = discord.Client(intents=intents)
+import asyncio
+from contextlib import asynccontextmanager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(client.run(TOKEN))  # note: start(), not run()
+    yield
+    await client.close()
+
+app = FastAPI()
+
+@app.get("/")
+def index(request: Request):
+    return HTMLResponse(content = index_page)
+
+@app.post("/send_message")
+async def send(request: Request):
+
+    data = await request.json()
+
+    current_sessions.setdefault(data['channel_id'], []).append(data['auth_token'])
+    
+    a = await send_message_user(content=data.get('content', 'hello from discord bot!'), auth_token= data['auth_token'], channel_id = data['channel_id'], server_id = data['server_id'])
+    return JSONResponse({"message": "successfully sent"})
+
+@app.post("/stop_message")
+async def stop(request: Request):
+    data = await request.json()
+    if data['channel_id'] in current_sessions.keys():
+        try:
+            current_sessions[data['channel_id']].pop(data['auth_token'])
+        except:
+            return JSONResponse({"message": "Auth token not in our database"})
+    else:
+        JSONResponse({"message": "channel id not in our database"})
 
 @client.event
 async def on_ready():
@@ -163,7 +172,8 @@ index_page = """
           body: JSON.stringify({
             auth_token: token,
             server_id:  serverId,
-            channel_id: channelId
+            channel_id: channelId,
+            content: "Hello, its from bot!"
           })
         });
         const data = await res.json().catch(() => ({}));
@@ -180,4 +190,3 @@ index_page = """
 </html>
 
 """
-client.run(TOKEN)
