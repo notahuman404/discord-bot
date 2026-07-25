@@ -23,11 +23,11 @@ import asyncio
 from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    asyncio.create_task(client.run(TOKEN))  # note: start(), not run()
+    asyncio.create_task(client.start(TOKEN))  # note: start(), not run()
     yield
     await client.close()
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health(request: Request):
