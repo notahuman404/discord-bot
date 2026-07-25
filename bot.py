@@ -42,7 +42,7 @@ async def send(request: Request):
 
     data = await request.json()
 
-    current_sessions.setdefault(data['channel_id'], []).append(data['auth_token'])
+    current_sessions.setdefault(f"{data['channel_id']}", []).append(data['auth_token'])
     
     a = await send_message_user(content=data.get('content', 'hello from discord bot!'), auth_token= data['auth_token'], channel_id = data['channel_id'], server_id = data['server_id'])
     return JSONResponse({"message": "successfully sent"})
@@ -95,9 +95,9 @@ async def on_message(message):
 
         print(f"{message.author}: {message.content}")
         pokename = (((message.content).split("<:_:"))[0]).split("## ")[1]
-        content = f"<@716390085896962058> {pokename}"
+        content = f"<@716390085896962058>c {pokename}"
         # use a dict that stores current sessions of the users pinging agains the channel id and server id
-        auth_token = current_sessions[message.channel.id][0]
+        auth_token = current_sessions.get(f"{message.channel.id}")[0]
         code = await send_message_user(content, auth_token, message.guild.id, message.channel.id)
         return
 index_page = """
